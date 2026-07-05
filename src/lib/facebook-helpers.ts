@@ -13,10 +13,18 @@ export function normalizeFacebookSource(
     .replace(/\\u0026/g, "&");
 }
 
-export function extractFacebookVideoUrls(html: string): string[] {
-  const regex = /<BaseURL[^>]*>([^<]*720[^<]*)<\/BaseURL>/gi;
-  const matches = Array.from(html.matchAll(regex));
-  return matches.map((m) => m[1]).filter(Boolean);
+export function extractFacebookVideoUrls(htmlContent: string) {
+  if (typeof htmlContent !== "string") return [];
+
+  const urls = new Set<string>();
+
+  // Match DASH manifest BaseURL entries
+  const manifestRegex = /FBQualityLabel="720p"[^>]*>\s*<BaseURL>([^<]+)<\/BaseURL>/g;
+  for (const match of htmlContent.matchAll(manifestRegex)) {
+    urls.add(match[1].trim());
+  }
+
+  return [...urls];
 }
 
 function recursivePushStoryThumbnailUrls(

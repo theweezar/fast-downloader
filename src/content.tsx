@@ -8,6 +8,7 @@ import { installFacebookInterceptors } from "./lib/interceptors/facebook";
 import { installInstagramInterceptors } from "./lib/interceptors/instagram";
 import { installTwitterInterceptors } from "./lib/interceptors/twitter";
 import { installTikTokInterceptors } from "./lib/interceptors/tiktok";
+import { GlobalState } from "./lib/global-state";
 
 const platform = detectPlatform()!;
 
@@ -16,12 +17,13 @@ if (platform) {
   const imageStore = new UrlStore();
   const postStore = new UrlStore();
   const videoStore = new UrlStore();
+  const globalState = new GlobalState();
 
   // Install interceptors immediately (before DOM is ready)
   // so we capture network requests from the very start
   switch (platform) {
     case "facebook":
-      installFacebookInterceptors(imageStore);
+      installFacebookInterceptors(imageStore, globalState);
       break;
     case "instagram":
       installInstagramInterceptors(imageStore, postStore);
@@ -57,6 +59,7 @@ if (platform) {
           imageStore={imageStore}
           postStore={postStore}
           videoStore={videoStore}
+          globalState={globalState}
         />
       </React.StrictMode>
     );

@@ -9,6 +9,8 @@ export function useUrlStore(store: UrlStore) {
 
   return {
     count,
+    mergeUrls: (urls: Record<string, string> | null | undefined) => store.merge(urls),
     downloadJson: (filename: string) => store.downloadJson(filename),
+    reset: () => store.reset(),
   };
 }

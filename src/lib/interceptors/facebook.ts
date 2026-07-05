@@ -2,8 +2,9 @@ import { UrlStore } from "../url-store";
 import { installXHR } from "../interceptor";
 import { safeJsonParse, cleanUrl, parseFileDataFromURL } from "../helpers";
 import { isPhotosPage } from "../facebook-helpers";
+import type { GlobalState } from "../global-state";
 
-function mkEntry(uri: string, id: string): Record<string, string> | null {
+export function mkEntry(uri: string, id: string): Record<string, string> | null {
   if (!uri || !id) return null;
   const fileData = parseFileDataFromURL(uri);
   const key = `${id}-${fileData.fileName}`;
@@ -60,10 +61,7 @@ function handleCollectionPage(imageStore: UrlStore): void {
   }
 }
 
-/** Tracks the story URL discovered from DM thread seen-state responses. */
-export let facebookStoryUrl: string | null = null;
-
-export function installFacebookInterceptors(imageStore: UrlStore): () => void {
+export function installFacebookInterceptors(imageStore: UrlStore, globalState: GlobalState): () => void {
   const onDOMReady = () => handleCollectionPage(imageStore);
   document.addEventListener("DOMContentLoaded", onDOMReady);
 
@@ -89,10 +87,13 @@ export function installFacebookInterceptors(imageStore: UrlStore): () => void {
       const bucketID = dmState?.bucket?.id;
       const storyID = dmState?.story?.id;
       if (bucketID && storyID) {
-        facebookStoryUrl = new URL(
+        const facebookStoryUrl = new URL(
           `stories/${bucketID}/${storyID}`,
           location.origin
         ).href;
+        globalState.set("facebookStoryUrl", facebookStoryUrl);
+        globalState.set("facebookStoryBucketId", bucketID);
+        globalState.set("facebookStoryId", storyID);
       }
     }
   });

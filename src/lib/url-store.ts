@@ -59,4 +59,9 @@ export class UrlStore {
     link.remove();
     URL.revokeObjectURL(link.href);
   }
+
+  reset(): void {
+    this.store = {};
+    this.notify();
+  }
 }

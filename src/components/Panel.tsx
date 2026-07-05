@@ -5,6 +5,7 @@ import FacebookPanel from "./FacebookPanel";
 import InstagramPanel from "./InstagramPanel";
 import TwitterPanel from "./TwitterPanel";
 import TikTokPanel from "./TikTokPanel";
+import type { GlobalState } from "../lib/global-state";
 
 const platformLabels: Record<Platform, string> = {
   facebook: "Facebook",
@@ -18,6 +19,7 @@ interface Props {
   imageStore: UrlStore;
   postStore: UrlStore;
   videoStore: UrlStore;
+  globalState: GlobalState;
   onClose: () => void;
 }
 
@@ -26,6 +28,7 @@ export default function Panel({
   imageStore,
   postStore,
   videoStore,
+  globalState,
   onClose,
 }: Props) {
   return (
@@ -50,7 +53,7 @@ export default function Panel({
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
         <AutoScrollControls platform={platform} />
 
-        {platform === "facebook" && <FacebookPanel imageStore={imageStore} />}
+        {platform === "facebook" && <FacebookPanel imageStore={imageStore} globalState={globalState} />}
         {platform === "instagram" && (
           <InstagramPanel imageStore={imageStore} postStore={postStore} />
         )}

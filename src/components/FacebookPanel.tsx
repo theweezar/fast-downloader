@@ -8,20 +8,29 @@ import {
   extractFacebookVideoUrls,
   extractFacebookStoryThumbnailUrls,
 } from "../lib/facebook-helpers";
-import { facebookStoryUrl } from "../lib/interceptors/facebook";
+import {
+  mkEntry
+} from "../lib/interceptors/facebook";
+import type { GlobalState } from "../lib/global-state";
+import { useGlobalState } from "../hooks/useGlobalState";
 
 interface Props {
   imageStore: UrlStore;
+  globalState: GlobalState;
 }
 
-export default function FacebookPanel({ imageStore }: Props) {
-  const { count, downloadJson } = useUrlStore(imageStore);
+export default function FacebookPanel({ imageStore, globalState }: Props) {
+  const { count, downloadJson, mergeUrls, reset } = useUrlStore(imageStore);
+  const { snapshot } = useGlobalState(globalState);
   const [downloadStatus, setDownloadStatus] = useState<string | null>(null);
-
   const showDownloadResource = isReelPage() || isStoriesPage();
+  const enableDownloadButton = !!(isReelPage() || (isStoriesPage() && snapshot.facebookStoryUrl));
+  const downloadButtonTitle = enableDownloadButton
+    ? `Start to download ${isStoriesPage() ? snapshot.facebookStoryUrl : location.href}`
+    : 'Disabled';
 
   const handleDownloadResource = async () => {
-    const url = facebookStoryUrl || location.href;
+    const url = isStoriesPage() ? snapshot.facebookStoryUrl : location.href;
     setDownloadStatus("Loading...");
     try {
       const response = await fetch(url, {
@@ -38,15 +47,17 @@ export default function FacebookPanel({ imageStore }: Props) {
       const storyUrls = extractFacebookStoryThumbnailUrls(html);
       const all = [...videoUrls, ...storyUrls];
 
+      console.log("Video:", videoUrls.length);
+      console.log("Story thumbnail:", storyUrls.length);
+
       if (all.length > 0) {
-        for (const u of all) {
-          const link = document.createElement("a");
-          link.href = u;
-          link.download = "";
-          document.body.appendChild(link);
-          link.click();
-          link.remove();
-        }
+        mergeUrls(Object.assign(
+          {},
+          ...all.map((u) => mkEntry(u, snapshot.facebookStoryBucketId || "unknown"))
+            .filter((e): e is Record<string, string> => e !== null)
+        ));
+        downloadJson("facebook-resource.json");
+        reset();
         setDownloadStatus("Done!");
       } else {
         setDownloadStatus("Not found");
@@ -56,6 +67,8 @@ export default function FacebookPanel({ imageStore }: Props) {
     }
     setTimeout(() => setDownloadStatus(null), 2000);
   };
+
+  console.log("Rendering...");
 
   return (
     <div className="bg-gray-50 rounded-lg p-3 space-y-2">
@@ -87,7 +100,9 @@ export default function FacebookPanel({ imageStore }: Props) {
           <span className="text-sm text-gray-700">Download reel / story</span>
           <button
             onClick={handleDownloadResource}
-            className="px-3 py-1.5 text-xs font-medium rounded-md bg-blue-500 hover:bg-blue-600 text-white transition-colors cursor-pointer"
+            disabled={!enableDownloadButton}
+            title={downloadButtonTitle}
+            className="px-3 py-1.5 text-xs font-medium rounded-md bg-blue-500 hover:bg-blue-600 text-white transition-colors cursor-pointer disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
           >
             {downloadStatus || "Download"}
           </button>
