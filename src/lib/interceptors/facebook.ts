@@ -1,0 +1,106 @@
+import { UrlStore } from "../url-store";
+import { installXHR } from "../interceptor";
+import { safeJsonParse, cleanUrl, parseFileDataFromURL } from "../helpers";
+import { isPhotosPage } from "../facebook-helpers";
+
+function mkEntry(uri: string, id: string): Record<string, string> | null {
+  if (!uri || !id) return null;
+  const fileData = parseFileDataFromURL(uri);
+  const key = `${id}-${fileData.fileName}`;
+  return { [key]: cleanUrl(uri) };
+}
+
+function extractURIs(response: any): Record<string, string> | null {
+  const edges = response?.data?.node?.pageItems?.edges;
+  if (!Array.isArray(edges)) return null;
+  const entries = edges
+    .map((el: any) => {
+      const uri = el?.node?.node?.viewer_image?.uri;
+      const id = el?.node?.node?.id;
+      return mkEntry(uri, id);
+    })
+    .filter((e: Record<string, string> | null): e is Record<string, string> => e !== null);
+  return Object.assign({}, ...entries);
+}
+
+function extractURIsFromContent(content: string): Record<string, string> {
+  const matches = Array.from(
+    content
+      .trim()
+      .matchAll(
+        /"__typename":"Photo".*?"id":"(?<id>[^"]+)".*?"uri":"(?<uri>[^"]+)"/g
+      )
+  );
+  const entries = matches
+    .map((match) => {
+      const uri = match?.groups?.uri?.replace(/\\\//g, "/");
+      const id = match?.groups?.id;
+      return uri && id ? mkEntry(uri, id) : null;
+    })
+    .filter((e): e is Record<string, string> => e !== null);
+  return Object.assign({}, ...entries) as Record<string, string>;
+}
+
+function handleCollectionPage(imageStore: UrlStore): void {
+  const scripts = Array.from(
+    document.querySelectorAll(
+      'script[type="application/json"][data-content-len][data-sjs]'
+    )
+  );
+  for (const script of scripts) {
+    const content = script.textContent || "";
+    if (
+      content.includes("all_collections") &&
+      content.includes("pageItems")
+    ) {
+      const URIs = extractURIsFromContent(content);
+      imageStore.merge(URIs);
+      break;
+    }
+  }
+}
+
+/** Tracks the story URL discovered from DM thread seen-state responses. */
+export let facebookStoryUrl: string | null = null;
+
+export function installFacebookInterceptors(imageStore: UrlStore): () => void {
+  const onDOMReady = () => handleCollectionPage(imageStore);
+  document.addEventListener("DOMContentLoaded", onDOMReady);
+
+  const uninstallXHR = installXHR((xhr) => {
+    const isGraphql = /api\/graphql/g.test(xhr.responseURL);
+    if (!isGraphql) return;
+
+    const resp = safeJsonParse(xhr.responseText);
+    if (!resp) return;
+
+    // Photos collection page
+    if (
+      isPhotosPage() &&
+      resp?.data?.node?.__typename === "TimelineAppCollection"
+    ) {
+      const URIs = extractURIs(resp);
+      if (URIs) imageStore.merge(URIs);
+    }
+
+    // DM thread story URL tracking
+    if (resp?.data?.direct_message_thread_update_seen_state) {
+      const dmState = resp.data.direct_message_thread_update_seen_state;
+      const bucketID = dmState?.bucket?.id;
+      const storyID = dmState?.story?.id;
+      if (bucketID && storyID) {
+        facebookStoryUrl = new URL(
+          `stories/${bucketID}/${storyID}`,
+          location.origin
+        ).href;
+      }
+    }
+  });
+
+  console.log("[FastDL] Facebook interceptors installed.");
+
+  return () => {
+    document.removeEventListener("DOMContentLoaded", onDOMReady);
+    uninstallXHR();
+  };
+}
