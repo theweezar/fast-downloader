@@ -1,16 +1,12 @@
 import { useSyncExternalStore, useCallback } from "react";
-import { UrlStore } from "../lib/url-store";
+import type { Category } from "../lib/url-store";
+import type { UrlStore } from "../lib/url-store";
 
-export function useUrlStore(store: UrlStore) {
+export function useUrlStore(store: UrlStore, category: Category) {
   const count = useSyncExternalStore(
     useCallback((cb: () => void) => store.subscribe(cb), [store]),
-    () => store.getCount()
+    () => category.count()
   );
 
-  return {
-    count,
-    mergeUrls: (urls: Record<string, string> | null | undefined) => store.merge(urls),
-    downloadJson: (filename: string) => store.downloadJson(filename),
-    reset: () => store.reset(),
-  };
+  return { category, count };
 }

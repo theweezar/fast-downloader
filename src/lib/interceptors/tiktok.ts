@@ -1,4 +1,4 @@
-import { UrlStore } from "../url-store";
+import { type UrlStore, CATEGORY } from "../url-store";
 import { installFetch, type FetchArgsFilter } from "../interceptor";
 import { cleanUrl } from "../helpers";
 
@@ -70,10 +70,9 @@ function processVideoPosts(response: any): Record<string, string> {
   }, {});
 }
 
-export function installTikTokInterceptors(
-  imageStore: UrlStore,
-  videoStore: UrlStore
-): () => void {
+export function installTikTokInterceptors(store: UrlStore): () => void {
+  const images = store.getCategory(CATEGORY.IMAGES);
+  const videos = store.getCategory(CATEGORY.VIDEOS);
   const argsFilter: FetchArgsFilter = (args) => {
     try {
       const [input, init] = args;
@@ -104,7 +103,7 @@ export function installTikTokInterceptors(
 
         if (tiktokConfig.mode === "images_only") {
           const urls = processImagePosts(data);
-          imageStore.merge(urls);
+          images.merge(urls);
           const filtered = {
             ...data,
             itemList: Array.isArray(data.itemList)
@@ -120,7 +119,7 @@ export function installTikTokInterceptors(
 
         if (tiktokConfig.mode === "videos_only") {
           const urls = processVideoPosts(data);
-          videoStore.merge(urls);
+          videos.merge(urls);
           const filtered = {
             ...data,
             itemList: Array.isArray(data.itemList)

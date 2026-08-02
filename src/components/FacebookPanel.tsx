@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { UrlStore } from "../lib/url-store";
+import { CATEGORY } from "../lib/url-store";
 import { useUrlStore } from "../hooks/useUrlStore";
 import {
   isReelPage,
@@ -12,15 +13,18 @@ import {
   mkEntry
 } from "../lib/interceptors/facebook";
 import type { GlobalState } from "../lib/global-state";
+import type { FacebookState } from "../types";
 import { useGlobalState } from "../hooks/useGlobalState";
+import { SiFacebook } from "react-icons/si";
 
 interface Props {
-  imageStore: UrlStore;
-  globalState: GlobalState;
+  store: UrlStore;
+  globalState: GlobalState<FacebookState>;
 }
 
-export default function FacebookPanel({ imageStore, globalState }: Props) {
-  const { count, downloadJson, mergeUrls, reset } = useUrlStore(imageStore);
+export default function FacebookPanel({ store, globalState }: Props) {
+  const images = store.getCategory(CATEGORY.IMAGES);
+  const { count } = useUrlStore(store, images);
   const { snapshot } = useGlobalState(globalState);
   const [downloadStatus, setDownloadStatus] = useState<string | null>(null);
   const showDownloadResource = isReelPage() || isStoriesPage();
@@ -30,7 +34,7 @@ export default function FacebookPanel({ imageStore, globalState }: Props) {
     : 'Disabled';
 
   const handleDownloadResource = async () => {
-    const url = isStoriesPage() ? snapshot.facebookStoryUrl : location.href;
+    const url = (isStoriesPage() ? snapshot.facebookStoryUrl : location.href) as string;
     setDownloadStatus("Loading...");
     try {
       const response = await fetch(url, {
@@ -51,13 +55,13 @@ export default function FacebookPanel({ imageStore, globalState }: Props) {
       console.log("Story thumbnail:", storyUrls.length);
 
       if (all.length > 0) {
-        mergeUrls(Object.assign(
+        images.merge(Object.assign(
           {},
           ...all.map((u) => mkEntry(u, snapshot.facebookStoryBucketId || "unknown"))
             .filter((e): e is Record<string, string> => e !== null)
         ));
-        downloadJson("facebook-resource.json");
-        reset();
+        images.download("facebook-resource.json");
+        images.reset();
         setDownloadStatus("Done!");
       } else {
         setDownloadStatus("Not found");
@@ -68,12 +72,10 @@ export default function FacebookPanel({ imageStore, globalState }: Props) {
     setTimeout(() => setDownloadStatus(null), 2000);
   };
 
-  console.log("Rendering...");
-
   return (
     <div className="bg-gray-50 rounded-lg p-3 space-y-2">
-      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-        Facebook
+      <h3 className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+        <SiFacebook className="text-[#1877F2]" size={14} />
       </h3>
 
       <div className="flex items-center justify-between gap-2">
@@ -86,10 +88,10 @@ export default function FacebookPanel({ imageStore, globalState }: Props) {
             const name =
               location.pathname.split("/").filter(Boolean).shift() ||
               "facebook";
-            downloadJson(`${name}.json`);
+            images.download(`${name}.json`);
           }}
           disabled={count === 0}
-          className="px-3 py-1.5 text-xs font-medium rounded-md bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white transition-colors cursor-pointer disabled:cursor-not-allowed"
+          className="px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-200 disabled:text-gray-400 transition-colors cursor-pointer disabled:cursor-not-allowed"
         >
           Export
         </button>
@@ -102,7 +104,7 @@ export default function FacebookPanel({ imageStore, globalState }: Props) {
             onClick={handleDownloadResource}
             disabled={!enableDownloadButton}
             title={downloadButtonTitle}
-            className="px-3 py-1.5 text-xs font-medium rounded-md bg-blue-500 hover:bg-blue-600 text-white transition-colors cursor-pointer disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
+            className="px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-200 disabled:text-gray-400 transition-colors cursor-pointer disabled:cursor-not-allowed"
           >
             {downloadStatus || "Download"}
           </button>

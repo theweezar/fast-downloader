@@ -1,14 +1,17 @@
 import { useState } from "react";
 import type { UrlStore } from "../lib/url-store";
+import { CATEGORY } from "../lib/url-store";
 import { useUrlStore } from "../hooks/useUrlStore";
 import { twitterConfig } from "../lib/interceptors/twitter";
+import { SiX } from "react-icons/si";
 
 interface Props {
-  imageStore: UrlStore;
+  store: UrlStore;
 }
 
-export default function TwitterPanel({ imageStore }: Props) {
-  const { count, downloadJson } = useUrlStore(imageStore);
+export default function TwitterPanel({ store }: Props) {
+  const imageCategory = store.getCategory(CATEGORY.IMAGES);
+  const { count } = useUrlStore(store, imageCategory);
   const [mode, setMode] = useState(twitterConfig.mode);
 
   const handleModeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -19,8 +22,8 @@ export default function TwitterPanel({ imageStore }: Props) {
 
   return (
     <div className="bg-gray-50 rounded-lg p-3 space-y-2">
-      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-        Twitter / X
+      <h3 className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+        <SiX className="text-black" size={12} />
       </h3>
 
       <div className="flex items-center justify-between gap-2">
@@ -45,9 +48,9 @@ export default function TwitterPanel({ imageStore }: Props) {
           <span className="ml-1 text-xs text-gray-400">({count})</span>
         </span>
         <button
-          onClick={() => downloadJson("twitter.json")}
+          onClick={() => imageCategory.download("twitter.json")}
           disabled={count === 0}
-          className="px-3 py-1.5 text-xs font-medium rounded-md bg-sky-500 hover:bg-sky-600 disabled:bg-gray-300 text-white transition-colors cursor-pointer disabled:cursor-not-allowed"
+          className="px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-200 disabled:text-gray-400 transition-colors cursor-pointer disabled:cursor-not-allowed"
         >
           Export
         </button>

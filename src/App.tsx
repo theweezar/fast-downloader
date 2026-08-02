@@ -4,20 +4,17 @@ import Panel from "./components/Panel";
 import type { Platform } from "./lib/platform";
 import type { UrlStore } from "./lib/url-store";
 import type { GlobalState } from "./lib/global-state";
+import type { FacebookState } from "./types";
 
 interface AppProps {
   platform: Platform;
-  imageStore: UrlStore;
-  postStore: UrlStore;
-  videoStore: UrlStore;
-  globalState: GlobalState;
+  store: UrlStore;
+  globalState: GlobalState<FacebookState>;
 }
 
 export default function App({
   platform,
-  imageStore,
-  postStore,
-  videoStore,
+  store,
   globalState,
 }: AppProps) {
   const [expanded, setExpanded] = useState(false);
@@ -31,9 +28,7 @@ export default function App({
       {expanded && (
         <Panel
           platform={platform}
-          imageStore={imageStore}
-          postStore={postStore}
-          videoStore={videoStore}
+          store={store}
           globalState={globalState}
           onClose={() => setExpanded(false)}
         />

@@ -9,34 +9,29 @@ import { installInstagramInterceptors } from "./lib/interceptors/instagram";
 import { installTwitterInterceptors } from "./lib/interceptors/twitter";
 import { installTikTokInterceptors } from "./lib/interceptors/tiktok";
 import { GlobalState } from "./lib/global-state";
+import type { FacebookState } from "./types";
 
 const platform = detectPlatform()!;
 
 if (platform) {
-  // Create stores as React-external state
-  const imageStore = new UrlStore();
-  const postStore = new UrlStore();
-  const videoStore = new UrlStore();
-  const globalState = new GlobalState();
+  const store = new UrlStore();
+  const globalState = new GlobalState<FacebookState>();
 
-  // Install interceptors immediately (before DOM is ready)
-  // so we capture network requests from the very start
   switch (platform) {
     case "facebook":
-      installFacebookInterceptors(imageStore, globalState);
+      installFacebookInterceptors(store, globalState);
       break;
     case "instagram":
-      installInstagramInterceptors(imageStore, postStore);
+      installInstagramInterceptors(store);
       break;
     case "twitter":
-      installTwitterInterceptors(imageStore);
+      installTwitterInterceptors(store);
       break;
     case "tiktok":
-      installTikTokInterceptors(imageStore, videoStore);
+      installTikTokInterceptors(store);
       break;
   }
 
-  // Inject React UI when DOM is ready
   function injectUI() {
     const host = document.createElement("div");
     host.id = "fast-downloader-root";
@@ -44,7 +39,6 @@ if (platform) {
 
     const shadow = host.attachShadow({ mode: "open" });
 
-    // Inject Tailwind CSS into shadow DOM for style isolation
     const style = document.createElement("style");
     style.textContent = styles;
     shadow.appendChild(style);
@@ -56,9 +50,7 @@ if (platform) {
       <React.StrictMode>
         <App
           platform={platform}
-          imageStore={imageStore}
-          postStore={postStore}
-          videoStore={videoStore}
+          store={store}
           globalState={globalState}
         />
       </React.StrictMode>

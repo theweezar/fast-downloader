@@ -1,50 +1,56 @@
 type Listener = () => void;
 
-export class UrlStore {
-  private store: Record<string, string> = {};
-  private listeners = new Set<Listener>();
+export const CATEGORY = {
+  IMAGES: "images",
+  POSTS: "posts",
+  VIDEOS: "videos",
+} as const;
+
+export type CategoryName = (typeof CATEGORY)[keyof typeof CATEGORY];
+
+export class Category {
+  private store: UrlStore;
+  private name: string;
+
+  constructor(store: UrlStore, name: string) {
+    this.store = store;
+    this.name = name;
+  }
 
   merge(urls: Record<string, string> | null | undefined): void {
     if (!urls || typeof urls !== "object") return;
+    const data = this.store.data;
+    if (!data[this.name]) data[this.name] = {};
     let changed = false;
     for (const [key, value] of Object.entries(urls)) {
-      if (this.store[key] !== value) changed = true;
-      this.store[key] = value;
+      if (data[this.name][key] !== value) changed = true;
+      data[this.name][key] = value;
     }
-    if (changed) this.notify();
+    if (changed) this.store.notify();
   }
 
-  getAll(): Record<string, string> {
-    return { ...this.store };
+  all(): Record<string, string> {
+    return { ...(this.store.data[this.name] || {}) };
   }
 
-  getCount(): number {
-    return Object.keys(this.store).length;
+  count(): number {
+    return Object.keys(this.store.data[this.name] || {}).length;
   }
 
   values(): string[] {
-    return Object.values(this.store);
+    return Object.values(this.store.data[this.name] || {});
   }
 
-  subscribe(listener: Listener): () => void {
-    this.listeners.add(listener);
-    return () => {
-      this.listeners.delete(listener);
-    };
+  reset(): void {
+    if (this.store.data[this.name]) {
+      this.store.data[this.name] = {};
+      this.store.notify();
+    }
   }
 
-  private notify(): void {
-    this.listeners.forEach((l) => {
-      try {
-        l();
-      } catch {
-        /* listener errors should not break the store */
-      }
-    });
-  }
-
-  downloadJson(filename: string): void {
-    const entries = Object.entries(this.store).map(([fileName, url]) => ({
+  download(filename: string): void {
+    const store = this.store.data[this.name] || {};
+    const entries = Object.entries(store).map(([fileName, url]) => ({
       fileName,
       url,
     }));
@@ -59,9 +65,38 @@ export class UrlStore {
     link.remove();
     URL.revokeObjectURL(link.href);
   }
+}
 
-  reset(): void {
-    this.store = {};
-    this.notify();
+export class UrlStore {
+  /** @internal accessed by Category */
+  data: Record<string, Record<string, string>> = {};
+  private listeners = new Set<Listener>();
+  private categoryCache = new Map<string, Category>();
+
+  getCategory(name: string): Category {
+    let cat = this.categoryCache.get(name);
+    if (!cat) {
+      cat = new Category(this, name);
+      this.categoryCache.set(name, cat);
+    }
+    return cat;
+  }
+
+  subscribe(listener: Listener): () => void {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+
+  /** @internal accessed by Category */
+  notify(): void {
+    this.listeners.forEach((l) => {
+      try {
+        l();
+      } catch {
+        /* listener errors should not break the store */
+      }
+    });
   }
 }

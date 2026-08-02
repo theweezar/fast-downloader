@@ -1,4 +1,4 @@
-import { UrlStore } from "../url-store";
+import { type UrlStore, type Category, CATEGORY } from "../url-store";
 import { installXHR, installFetch } from "../interceptor";
 import {
   safeJsonParse,
@@ -40,22 +40,16 @@ function extractSavedPostImages(response: any): string[] {
   });
 }
 
-/**
- * Extract liked post URLs from bloks response.
- * Uses regex-based extraction to find media_code values
- * in Instagram's bloks payload format.
- */
 function extractLikedPostUrls(json: any): string[] {
   try {
     const str = JSON.stringify(json);
-    const matches = str.match(/"media_code"\s*:\s*"([^"]+)"/g);
-    if (!matches) return [];
-    return matches
-      .map((m) => {
-        const code = m.match(/"media_code"\s*:\s*"([^"]+)"/)?.[1];
-        return code ? `https://www.instagram.com/p/${code}/` : "";
-      })
-      .filter(Boolean);
+
+    const regex =
+      /\\"media_id\\",\s*\\"media_code\\"[\s\S]*?\(bk\.action\.array\.Make,\s*\\"\d+_\d+\\",\s*\\"([A-Za-z0-9_-]+)\\"/g;
+
+    return Array.from(str.matchAll(regex), ([, code]) =>
+      `https://www.instagram.com/p/${code}`
+    );
   } catch {
     return [];
   }
@@ -63,7 +57,7 @@ function extractLikedPostUrls(json: any): string[] {
 
 async function handleLikeResponse(
   response: Response,
-  postStore: UrlStore
+  posts: Category
 ): Promise<void> {
   try {
     const text = await response.text();
@@ -71,42 +65,41 @@ async function handleLikeResponse(
     if (!json) return;
 
     const urls = extractLikedPostUrls(json);
-    const obj = Object.entries(transformArrayToObject(urls)).reduce<
+    const raw = transformArrayToObject(urls);
+    const entries = Object.entries(raw).reduce<
       Record<string, string>
     >((acc, [key, value]) => {
       acc[`${key}.html`] = value;
       return acc;
     }, {});
-    postStore.merge(obj);
+    posts.merge(entries);
   } catch (e) {
     console.error("[FastDL] Error handling like response:", e);
   }
 }
 
-export function installInstagramInterceptors(
-  imageStore: UrlStore,
-  postStore: UrlStore
-): () => void {
+export function installInstagramInterceptors(store: UrlStore): () => void {
+  const images = store.getCategory(CATEGORY.IMAGES);
+  const posts = store.getCategory(CATEGORY.POSTS);
+
   const uninstallXHR = installXHR((xhr) => {
     const resp = safeJsonParse(xhr.responseText);
     if (!resp || typeof resp !== "object") return;
 
-    // Saved posts
     if (
       xhr.responseURL.includes("api/v1/feed/saved/posts") &&
       location.pathname.includes("saved/all-posts")
     ) {
       const urls = extractSavedPostImages(resp);
-      imageStore.merge(transformArrayToObject(urls));
+      images.merge(transformArrayToObject(urls));
     }
 
-    // Profile / timeline posts
     if (
       xhr.responseURL.includes("graphql/query") &&
       !location.pathname.includes("saved/all-posts")
     ) {
       const urls = extractProfileImages(resp);
-      imageStore.merge(transformArrayToObject(urls));
+      images.merge(transformArrayToObject(urls));
     }
   });
 
@@ -116,7 +109,7 @@ export function installInstagramInterceptors(
       response.url.includes("async/wbloks/fetch") &&
       location.pathname.includes("your_activity/interactions/likes")
     ) {
-      await handleLikeResponse(response, postStore);
+      await handleLikeResponse(response, posts);
     }
   });
 

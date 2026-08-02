@@ -1,19 +1,21 @@
 type Listener = () => void;
 
-export class GlobalState {
-  private store: Record<string, any> = {};
+export class GlobalState<T extends Record<string, any>> {
+  private store: Partial<T> = {};
   private listeners = new Set<Listener>();
 
-  set(key: string, value: any): void {
-    this.store = {
-      ...this.store,
-      [key]: value
-    }
+  set<K extends keyof T>(key: K, value: T[K]): void {
+    if (this.store[key] === value) return;
+    this.store = { ...this.store, [key]: value };
     this.notify();
   }
 
-  get(key: string): any {
+  get<K extends keyof T>(key: K): T[K] | undefined {
     return this.store[key];
+  }
+
+  snapshot(): Partial<T> {
+    return this.store;
   }
 
   subscribe(listener: Listener): () => void {
@@ -31,9 +33,5 @@ export class GlobalState {
         /* listener errors should not break the store */
       }
     });
-  }
-
-  snapshot() {
-    return this.store;
   }
 }

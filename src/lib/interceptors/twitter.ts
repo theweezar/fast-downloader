@@ -1,4 +1,4 @@
-import { UrlStore } from "../url-store";
+import { type UrlStore, CATEGORY } from "../url-store";
 import { installXHR } from "../interceptor";
 import { safeJsonParse, cleanUrl, parseFileDataFromURL } from "../helpers";
 
@@ -90,7 +90,9 @@ function extractUserMediaImages(response: any): Record<string, string>[] {
   });
 }
 
-export function installTwitterInterceptors(imageStore: UrlStore): () => void {
+export function installTwitterInterceptors(store: UrlStore): () => void {
+  const images = store.getCategory(CATEGORY.IMAGES);
+
   const uninstallXHR = installXHR((xhr) => {
     const isLiked = /api\/graphql\/[^/]*\/Likes/g.test(xhr.responseURL);
     const isUser = /api\/graphql\/[^/]*\/UserMedia/g.test(xhr.responseURL);
@@ -108,7 +110,7 @@ export function installTwitterInterceptors(imageStore: UrlStore): () => void {
       (acc, curr) => ({ ...acc, ...curr }),
       {}
     );
-    imageStore.merge(merged);
+    images.merge(merged);
   });
 
   console.log("[FastDL] Twitter interceptors installed.");

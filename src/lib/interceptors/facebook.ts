@@ -1,8 +1,9 @@
-import { UrlStore } from "../url-store";
+import { type UrlStore, type Category, CATEGORY } from "../url-store";
 import { installXHR } from "../interceptor";
 import { safeJsonParse, cleanUrl, parseFileDataFromURL } from "../helpers";
 import { isPhotosPage } from "../facebook-helpers";
 import type { GlobalState } from "../global-state";
+import type { FacebookState } from "../../types";
 
 export function mkEntry(uri: string, id: string): Record<string, string> | null {
   if (!uri || !id) return null;
@@ -42,7 +43,7 @@ function extractURIsFromContent(content: string): Record<string, string> {
   return Object.assign({}, ...entries) as Record<string, string>;
 }
 
-function handleCollectionPage(imageStore: UrlStore): void {
+function handleCollectionPage(images: Category): void {
   const scripts = Array.from(
     document.querySelectorAll(
       'script[type="application/json"][data-content-len][data-sjs]'
@@ -55,14 +56,18 @@ function handleCollectionPage(imageStore: UrlStore): void {
       content.includes("pageItems")
     ) {
       const URIs = extractURIsFromContent(content);
-      imageStore.merge(URIs);
+      images.merge(URIs);
       break;
     }
   }
 }
 
-export function installFacebookInterceptors(imageStore: UrlStore, globalState: GlobalState): () => void {
-  const onDOMReady = () => handleCollectionPage(imageStore);
+export function installFacebookInterceptors(
+  store: UrlStore,
+  globalState: GlobalState<FacebookState>
+): () => void {
+  const images = store.getCategory(CATEGORY.IMAGES);
+  const onDOMReady = () => handleCollectionPage(images);
   document.addEventListener("DOMContentLoaded", onDOMReady);
 
   const uninstallXHR = installXHR((xhr) => {
@@ -72,26 +77,24 @@ export function installFacebookInterceptors(imageStore: UrlStore, globalState: G
     const resp = safeJsonParse(xhr.responseText);
     if (!resp) return;
 
-    // Photos collection page
     if (
       isPhotosPage() &&
       resp?.data?.node?.__typename === "TimelineAppCollection"
     ) {
       const URIs = extractURIs(resp);
-      if (URIs) imageStore.merge(URIs);
+      if (URIs) images.merge(URIs);
     }
 
-    // DM thread story URL tracking
     if (resp?.data?.direct_message_thread_update_seen_state) {
       const dmState = resp.data.direct_message_thread_update_seen_state;
       const bucketID = dmState?.bucket?.id;
       const storyID = dmState?.story?.id;
       if (bucketID && storyID) {
-        const facebookStoryUrl = new URL(
+        const storyUrl = new URL(
           `stories/${bucketID}/${storyID}`,
           location.origin
         ).href;
-        globalState.set("facebookStoryUrl", facebookStoryUrl);
+        globalState.set("facebookStoryUrl", storyUrl);
         globalState.set("facebookStoryBucketId", bucketID);
         globalState.set("facebookStoryId", storyID);
       }
