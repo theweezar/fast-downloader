@@ -16,7 +16,7 @@ export default function InstagramPanel({ store }: Props) {
   return (
     <div className="bg-gray-50 rounded-lg p-3 space-y-2">
       <h3 className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-        <SiInstagram className="text-[#E4405F]" size={14} />
+        <SiInstagram className="text-[#E4405F]" size={16} />
       </h3>
 
       <div className="flex items-center justify-between gap-2">

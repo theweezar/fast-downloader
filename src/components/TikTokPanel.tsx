@@ -27,7 +27,7 @@ export default function TikTokPanel({ store }: Props) {
   return (
     <div className="bg-gray-50 rounded-lg p-3 space-y-2">
       <h3 className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-        <SiTiktok className="text-black" size={13} />
+        <SiTiktok className="text-black" size={16} />
       </h3>
 
       <div className="flex items-center justify-between gap-2">
@@ -38,7 +38,7 @@ export default function TikTokPanel({ store }: Props) {
           id="fd-tiktok-mode"
           value={mode}
           onChange={handleModeChange}
-          className="text-xs border border-gray-300 rounded-md px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-gray-500"
+          className="text-xs border border-solid border-gray-300 rounded-md text-black px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-gray-500"
         >
           <option value="images_only">Images only</option>
           <option value="videos_only">Videos only</option>

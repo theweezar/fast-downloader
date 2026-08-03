@@ -6,6 +6,8 @@ export const tiktokConfig = {
   mode: "images_only" as "images_only" | "videos_only",
 };
 
+const URL_PART = "p16-common-sign";
+
 function extractExtension(urlString: string): string | null {
   try {
     return new URL(urlString).pathname.split(".").pop() || null;
@@ -17,7 +19,7 @@ function extractExtension(urlString: string): string | null {
 function extractImageUrl(image: any): string | null {
   const urlList = image?.imageURL?.urlList;
   const p16Url = Array.isArray(urlList)
-    ? urlList.find((url: string) => url.includes("p16-sign-sg"))
+    ? urlList.find((url: string) => url.includes(URL_PART))
     : null;
   return p16Url ? cleanUrl(p16Url) : null;
 }

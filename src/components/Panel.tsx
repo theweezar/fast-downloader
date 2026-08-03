@@ -23,7 +23,7 @@ export default function Panel({
   onClose,
 }: Props) {
   return (
-    <div className="fixed bottom-20 right-4 w-80 max-h-[70vh] bg-white rounded-xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden z-[2147483647]">
+    <div className="fixed bottom-20 right-4 w-80 max-h-[70vh] bg-gray-50 rounded-xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden z-[2147483647]">
       <header className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white shrink-0">
         <div>
           <h1 className="text-sm font-semibold leading-tight text-black">
@@ -32,7 +32,7 @@ export default function Panel({
         </div>
         <button
           onClick={onClose}
-          className="w-6 h-6 flex items-center justify-center rounded hover:bg-white/20 text-black transition-colors cursor-pointer"
+          className="w-6 h-6 flex items-center justify-center rounded bg-white text-black transition-colors cursor-pointer"
         >
           <IoClose size={18} />
         </button>

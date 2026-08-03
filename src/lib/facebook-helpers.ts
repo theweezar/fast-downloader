@@ -62,11 +62,11 @@ export function isReelPage(href?: string): boolean {
 
 export function isStoriesPage(href?: string): boolean {
   const url = href || location.href;
-  return url.includes("/stories/") || url.includes("/story.php");
+  return url.includes("/stories") || url.includes("/story.php");
 }
 
 export function isPhotosPage(href?: string): boolean {
-  return (href || location.href).includes("/photos/");
+  return (href || location.href).includes("/photos");
 }
 
 export function isDirectMessageThreadBucketGraphql(
