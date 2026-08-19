@@ -86,7 +86,7 @@ export function installTikTokInterceptors(store: UrlStore): () => void {
             : (input as Request).url;
       if (url.includes("api/favorite/item_list")) {
         const urlObj = new URL(url);
-        urlObj.searchParams.set("count", "35");
+        urlObj.searchParams.set("count", "20");
         return [urlObj.toString(), init];
       }
     } catch {
