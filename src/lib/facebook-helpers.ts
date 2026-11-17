@@ -19,7 +19,7 @@ export function extractFacebookVideoUrls(htmlContent: string) {
   const urls = new Set<string>();
 
   // Match DASH manifest BaseURL entries
-  const manifestRegex = /FBQualityLabel="720p"[^>]*>\s*<BaseURL>([^<]+)<\/BaseURL>/g;
+  const manifestRegex = /FBQualityLabel="1080p"[^>]*>\s*<BaseURL>([^<]+)<\/BaseURL>/g;
   for (const match of htmlContent.matchAll(manifestRegex)) {
     urls.add(match[1].trim());
   }
